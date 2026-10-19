@@ -1,6 +1,54 @@
+//A call to Anthropic 
+
 curl https://api.anthropic.com/v1/messages \
   --header "x-api-key: s...A" \
   --header "anthropic-version: 2023-06-01" \
   --header "content-type: application/json" \
   --data '{"model": "claude-opus-5-5", "max_tokens": 1024,
     "messages": [{"role": "user", "content": "Hello, world"}]}'
+
+
+//Reply comparison between local vs hosted model
+
+You: Give me a cocktail recipy for a Mezcalita Xipe
+
+=== LOCAL  (llama3.2) ===
+Here's a recipe for a Mezcalita Xipe:
+
+Ingredients:
+
+* 2 oz Mezcal
+* 1 oz Grapefruit juice
+* 1/2 oz Honey syrup (1:1 honey and water, dissolved)
+* 1/2 oz Lime juice
+* 2 dashes of Smoked salt bitters
+* Ice
+* Lime wheel, for garnish
+* Sprig of rosemary, for garnish
+
+Instructions:
+
+1. Fill a cocktail shaker with ice.
+2. Add Mezcal, grapefruit juice, honey syrup, and lime juice.
+3. Shake until chilled.
+4. Strain into a rocks glass filled with ice.
+5. Add 2 dashes of Smoked salt bitters.
+6. Garnish with a lime wheel and a sprig of rosemary.
+
+This drink combines the smoky flavor of Mezcal with the tartness of grapefruit and the sweetness of honey syrup. The Smoked salt bitters add a unique smoky flavor that complements the Mezcal nicely.
+[32776 ms | in: 48 | out: 210 | cost: $0.000000]
+
+=== HOSTED (Claude Haiku) ===
+I don't know a standard recipe called "Mezcalita Xipe," so I can't confirm its exact specs. It may be a house or regional variation. Here's a classic Mezcalita you can use as a base:
+
+**Mezcalita**
+- 2 oz mezcal (joven/unaged works best)
+- 1 oz fresh lime juice
+- ½ oz agave syrup (adjust to taste)
+- 1 oz orange liqueur, such as Cointreau (optional)
+- Tajín or salt for the rim
+
+**Method:** Rim a rocks glass with lime and Tajín. Shake everything with ice, strain over fresh ice, and garnish with a lime wheel.
+
+If the Xipe version has a specific ingredient, like a particular mezcal, a fruit, or a bitters, tell me and I'll adjust the recipe.
+[3776 ms | in: 52 | out: 481 | cost: $0.000000]
