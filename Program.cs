@@ -1,88 +1,34 @@
-﻿using System.Diagnostics;
-using Anthropic;
-using Microsoft.Extensions.AI;
-using OllamaSharp;
-using DotNetEnv;
+using LocalAI;
+using LocalAI.Configuration;
+using LocalAI.Output;
+using LocalAI.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
+// Load .env into environment variables. This must run BEFORE the host is created,
+// because the host reads environment variables into IConfiguration when it is built.
+// TraversePath() searches upwards from bin\Debug\net10.0 until it finds the .env file.
 DotNetEnv.Env.TraversePath().Load();
 
-// Local model
-IChatClient localClient = new OllamaApiClient(new Uri("http://localhost:11434"), "llama3.2");
+// The host loads appsettings.json and environment variables automatically.
+HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
-// Hosted model
-string? apiKey = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
-if (string.IsNullOrEmpty(apiKey))
+builder.Services.Configure<PlaygroundSettings>(builder.Configuration.GetSection(PlaygroundSettings.SectionName));
+builder.Services.AddSingleton<ChatClientFactory>();
+builder.Services.AddSingleton<ConsoleReporter>();
+builder.Services.AddSingleton<PlaygroundApp>();
+
+using IHost host = builder.Build();
+
+PlaygroundApp app = host.Services.GetRequiredService<PlaygroundApp>();
+
+try
 {
-    Console.WriteLine("ANTHROPIC_API_KEY is not set. Press Enter to exit.");
+    await app.RunAsync();
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"\nThe application stopped because of an error: {ex.Message}");
+    Console.WriteLine("Press Enter to exit.");
     Console.ReadLine();
-    return;
-}
-AnthropicClient anthropic = new AnthropicClient { ApiKey = apiKey };
-IChatClient hostedClient = anthropic.AsIChatClient("claude-haiku-5-5");
-
-// Fill these in from the Anthropic pricing page (USD per million tokens)
-const double HostedInputPricePerMillion = 0.0;
-const double HostedOutputPricePerMillion = 0.0;
-
-// Local model options: Ollama supports temperature
-ChatOptions localOptions = new ChatOptions();
-localOptions.Temperature = 0.7f;
-localOptions.MaxOutputTokens = 1024;
-
-// Hosted model options: no temperature (rejected by this model)
-ChatOptions hostedOptions = new ChatOptions();
-hostedOptions.MaxOutputTokens = 1024; // Required by the Anthropic API
-
-while (true)
-{
-    Console.Write("\nYou: ");
-    string? input = Console.ReadLine();
-    if (string.IsNullOrWhiteSpace(input))
-    {
-        break;
-    }
-
-    List<ChatMessage> messages = new List<ChatMessage>();
-    messages.Add(new ChatMessage(ChatRole.System, "You are a knowledgeable bartender. Keep answers short."));
-    messages.Add(new ChatMessage(ChatRole.User, input));
-
-    await AskModel("LOCAL  (llama3.2)", localClient, messages, localOptions, 0.0, 0.0);
-    await AskModel("HOSTED (Claude Haiku)", hostedClient, messages, hostedOptions,
-        HostedInputPricePerMillion, HostedOutputPricePerMillion);
-}
-
-static async Task AskModel(string label, IChatClient client, List<ChatMessage> messages,
-    ChatOptions options, double inputPricePerMillion, double outputPricePerMillion)
-{
-    Stopwatch stopwatch = Stopwatch.StartNew();
-
-    ChatResponse response;
-    try
-    {
-        response = await client.GetResponseAsync(messages, options);
-    }
-    catch (Exception ex)
-    {
-        stopwatch.Stop();
-        Console.WriteLine($"\n=== {label} FAILED after {stopwatch.ElapsedMilliseconds} ms ===");
-        Console.WriteLine($"{ex.GetType().Name}: {ex.Message}");
-        return;
-    }
-
-    stopwatch.Stop();
-
-    Console.WriteLine($"\n=== {label} ===");
-    Console.WriteLine(response.Text);
-
-    long inputTokens = 0;
-    long outputTokens = 0;
-    if (response.Usage != null)
-    {
-        inputTokens = response.Usage.InputTokenCount ?? 0;
-        outputTokens = response.Usage.OutputTokenCount ?? 0;
-    }
-
-    double cost = (inputTokens * inputPricePerMillion + outputTokens * outputPricePerMillion) / 1_000_000;
-
-    Console.WriteLine($"[{stopwatch.ElapsedMilliseconds} ms | in: {inputTokens} | out: {outputTokens} | cost: ${cost:F6}]");
 }

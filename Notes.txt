@@ -10,6 +10,7 @@ curl https://api.anthropic.com/v1/messages \
 
 //Reply comparison between local vs hosted model
 
+//Prompt 1
 You: Give me a cocktail recipy for a Mezcalita Xipe
 
 === LOCAL  (llama3.2) ===
@@ -52,3 +53,49 @@ I don't know a standard recipe called "Mezcalita Xipe," so I can't confirm its e
 
 If the Xipe version has a specific ingredient, like a particular mezcal, a fruit, or a bitters, tell me and I'll adjust the recipe.
 [3776 ms | in: 52 | out: 481 | cost: $0.000000]
+
+//Prompt 2
+You: What is the best way to infuse campari with coffee beans?
+
+=== LOCAL  (llama3.2) ===
+To infuse Campari with coffee beans, I recommend the following:
+
+1. Grind the coffee beans to a medium-coarse grind.
+2. Place the ground coffee in a clean glass jar with a lid.
+3. Pour Campari over the coffee, leaving about 1-2 inches of space at the top.
+4. Steep in the refrigerator for 2-4 hours or overnight (8-12 hours).
+5. Strain the mixture through a fine-mesh sieve into a clean glass bottle.
+6. Store in the refrigerator and use within a week.
+
+This method allows the coffee flavors to meld with the Campari, creating a unique and complex flavor profile.
+[31133 ms | in: 49 | out: 138 | cost: $0.000000]
+
+=== HOSTED (Claude Haiku) ===
+Use whole, lightly crushed or coarsely cracked coffee beans and a neutral ratio of about 20 to 30 grams of beans per 750 ml bottle of Campari.
+
+1. Lightly crack the beans (a rolling pin or the bottom of a pan works), so the surface area increases without turning them to dust.
+2. Add them to a clean jar with the Campari and seal it.
+3. Let it sit at room temperature for 12 to 24 hours. Taste every few hours after the first 8. Coffee gets bitter fast.
+4. Strain through a coffee filter or cheesecloth, then bottle.
+
+Tips:
+- Use a medium or dark roast for a richer flavor, or a light roast for brighter, fruitier notes.
+- Stop when it tastes right. Over-infusing brings out harsh bitterness that Campari's own bitterness will amplify.
+- Store in the fridge or a cool dark place. It's bottled and stable, but the coffee aroma fades over a few weeks.
+[3694 ms | in: 47 | out: 332 | cost: $0.000000]
+
+///Excersise you missed - You got to here
+
+Embeddings
+
+Principle: an embedding model turns text into a list of numbers (a vector) that represents its meaning. 
+Texts with similar meanings get vectors that sit close together, even if they share no words: “smoky and bitter” ends up near “Mezcal Negroni”. 
+Embeddings are the basis of semantic search and RAG. They’re a different kind of model from chat models: they output numbers, not text.
+
+Your coverage: this is the one topic the playground didn’t exercise. A 20-minute experiment would close the gap before Phase 4:
+
+ollama pull nomic-embed-text
+Create an IEmbeddingGenerator (OllamaSharp’s OllamaApiClient implements it) and embed 5–10 cocktail descriptions.
+Embed a query like “something smoky and bitter” and rank the cocktails by cosine similarity, written as a plain loop.
+
+You’ll see that it finds meaning rather than keywords. You’ll also see where it fails: an exact ingredient search can lose to “vibes”, which is why Phase 4 adds hybrid search.
