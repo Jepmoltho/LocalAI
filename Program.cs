@@ -1,40 +1,49 @@
-﻿using System.Diagnostics;
-using Microsoft.Extensions.AI;
-using OllamaSharp;
+using LocalAI;
+using LocalAI.Configuration;
+using LocalAI.Output;
+using LocalAI.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-IChatClient client = new OllamaApiClient(new Uri("http://localhost:11434"), "llama3.2");
+// Load .env into environment variables. This must run BEFORE the host is created,
+// because the host reads environment variables into IConfiguration when it is built.
+// TraversePath() searches upwards from bin\Debug\net10.0 until it finds the .env file.
+DotNetEnv.Env.TraversePath().Load();
 
-ChatOptions options = new ChatOptions();
+// The host loads appsettings.json and environment variables automatically.
+HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
-options.Temperature = 0.7f;
+builder.Services.Configure<PlaygroundSettings>(builder.Configuration.GetSection(PlaygroundSettings.SectionName));
+builder.Services.Configure<EmbeddingSettings>(builder.Configuration.GetSection(EmbeddingSettings.SectionName));
+builder.Services.AddSingleton<ChatClientFactory>();
+builder.Services.AddSingleton<ConsoleReporter>();
+builder.Services.AddSingleton<PlaygroundApp>();
+builder.Services.AddSingleton<EmbeddingSearchApp>();
 
-List<ChatMessage> history = new List<ChatMessage>();
-history.Add(new ChatMessage(ChatRole.System, "You are a knowledgeable bartender. Keep answers short."));
+using IHost host = builder.Build();
 
-while (true) 
+Console.WriteLine("Choose an experiment:");
+Console.WriteLine("  1. Model playground (compare chat models)");
+Console.WriteLine("  2. Embedding search (semantic cocktail search)");
+Console.Write("> ");
+string? choice = Console.ReadLine();
+
+try
 {
-    Console.Write("\nYou: ");
-    string? input = Console.ReadLine();
-    if (string.IsNullOrWhiteSpace(input))
+    if (choice == "2")
     {
-        break;
+        EmbeddingSearchApp embeddingApp = host.Services.GetRequiredService<EmbeddingSearchApp>();
+        await embeddingApp.RunAsync();
     }
-
-    history.Add(new ChatMessage(ChatRole.User, input));
-
-    Stopwatch stopwatch = Stopwatch.StartNew();
-    ChatResponse response = await client.GetResponseAsync(history, options);
-    Console.WriteLine($"(model: {response.ModelId})");
-    stopwatch.Stop();
-
-    Console.WriteLine($"\nAI: {response.Text}");
-    Console.WriteLine($"[{stopwatch.ElapsedMilliseconds} ms");
-
-    if (response.Usage != null)
+    else
     {
-        Console.WriteLine($" | in: {response.Usage.InputTokenCount} tokens, out: {response.Usage.OutputTokenCount} tokens]");
+        PlaygroundApp playgroundApp = host.Services.GetRequiredService<PlaygroundApp>();
+        await playgroundApp.RunAsync();
     }
-
-    history.AddRange(response.Messages);
 }
-
+catch (Exception ex)
+{
+    Console.WriteLine($"\nThe application stopped because of an error: {ex.Message}");
+    Console.WriteLine("Press Enter to exit.");
+    Console.ReadLine();
+}
