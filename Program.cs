@@ -14,17 +14,32 @@ DotNetEnv.Env.TraversePath().Load();
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.Configure<PlaygroundSettings>(builder.Configuration.GetSection(PlaygroundSettings.SectionName));
+builder.Services.Configure<EmbeddingSettings>(builder.Configuration.GetSection(EmbeddingSettings.SectionName));
 builder.Services.AddSingleton<ChatClientFactory>();
 builder.Services.AddSingleton<ConsoleReporter>();
 builder.Services.AddSingleton<PlaygroundApp>();
+builder.Services.AddSingleton<EmbeddingSearchApp>();
 
 using IHost host = builder.Build();
 
-PlaygroundApp app = host.Services.GetRequiredService<PlaygroundApp>();
+Console.WriteLine("Choose an experiment:");
+Console.WriteLine("  1. Model playground (compare chat models)");
+Console.WriteLine("  2. Embedding search (semantic cocktail search)");
+Console.Write("> ");
+string? choice = Console.ReadLine();
 
 try
 {
-    await app.RunAsync();
+    if (choice == "2")
+    {
+        EmbeddingSearchApp embeddingApp = host.Services.GetRequiredService<EmbeddingSearchApp>();
+        await embeddingApp.RunAsync();
+    }
+    else
+    {
+        PlaygroundApp playgroundApp = host.Services.GetRequiredService<PlaygroundApp>();
+        await playgroundApp.RunAsync();
+    }
 }
 catch (Exception ex)
 {
